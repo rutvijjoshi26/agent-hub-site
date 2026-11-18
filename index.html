@@ -4,70 +4,198 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>agent-hub</title>
-<meta name="description" content="agent-hub runs Claude Code agents on an always-on server and lets you watch and steer them from your phone.">
+<title>agent-hub · Coding agents on a server, steered from your phone</title>
+<meta name="description" content="agent-hub keeps Claude Code sessions running on an always-on server and lets you watch and answer them from your phone.">
 <style>
-  :root { --bg: #ffffff; --text: #1d1d1f; --muted: #6e6e73; --link: #0066cc; --line: #d2d2d7; }
+  :root {
+    --bg: #ffffff; --alt: #f5f5f7; --text: #1d1d1f; --muted: #6e6e73; --link: #0066cc; --line: #d2d2d7;
+    --frame: #1d1d1f; --needs: #c27c0e; --working: #248a3d; --ready: #0066cc;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #000000; --text: #f5f5f7; --muted: #a1a1a6; --link: #2997ff; --line: #424245; }
+    :root {
+      --bg: #000000; --alt: #161617; --text: #f5f5f7; --muted: #a1a1a6; --link: #2997ff; --line: #333336;
+      --frame: #2c2c2e; --needs: #f5a524; --working: #3fb950; --ready: #6ea8fe;
+    }
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
-  main { max-width: 980px; margin: 0 auto; padding: 80px 24px 64px; }
-  h1 { font-size: 48px; line-height: 1.08; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 16px; }
-  .lede { font-size: 21px; color: var(--muted); max-width: 680px; margin: 0; }
-  .shots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin: 56px 0 12px; }
-  .shots img { width: 100%; height: auto; display: block; border-radius: 24px; border: 1px solid var(--line); }
-  .caption { font-size: 14px; color: var(--muted); margin: 0 0 64px; }
-  h2 { font-size: 24px; font-weight: 600; margin: 48px 0 12px; }
-  p { margin: 0 0 12px; max-width: 680px; }
-  ul { margin: 0; padding-left: 20px; max-width: 680px; }
-  li { margin: 8px 0; }
-  .muted { color: var(--muted); }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
   a { color: var(--link); text-decoration: none; }
   a:hover { text-decoration: underline; }
-  a:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 4px; }
-  footer { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 15px; color: var(--muted); }
-  @media (max-width: 760px) {
-    main { padding-top: 56px; }
-    h1 { font-size: 34px; }
+  a:focus-visible { outline: 2px solid var(--link); outline-offset: 3px; border-radius: 6px; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 28px; }
+
+  /* Nav */
+  nav { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 80%, transparent); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--line); }
+  @media (prefers-reduced-transparency: reduce) { nav { background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; } }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 52px; }
+  .brand { font: 600 17px var(--mono); color: var(--text); }
+  nav .links { display: flex; gap: 24px; font-size: 15px; }
+
+  /* Hero */
+  .hero { padding: 96px 0 104px; }
+  .hero .wrap { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 56px; align-items: center; }
+  h1 { font-size: 60px; line-height: 1.05; font-weight: 700; letter-spacing: -0.025em; margin: 0 0 20px; }
+  .lede { font-size: 22px; line-height: 1.45; color: var(--muted); margin: 0 0 32px; max-width: 34ch; }
+  .actions { display: flex; gap: 14px; flex-wrap: wrap; }
+  .btn { display: inline-block; padding: 12px 22px; border-radius: 999px; font-size: 17px; font-weight: 500; }
+  .btn.primary { background: #0071e3; color: #ffffff; }
+  .btn.primary:hover { background: #0077ed; text-decoration: none; }
+  .btn.secondary { color: var(--link); border: 1px solid var(--link); }
+  .btn.secondary:hover { text-decoration: none; background: color-mix(in srgb, var(--link) 8%, transparent); }
+
+  /* Phone frame */
+  .phone { width: 100%; max-width: 320px; margin: 0 auto; padding: 10px; border-radius: 52px; background: var(--frame); box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.35); }
+  .phone img { display: block; width: 100%; height: auto; border-radius: 42px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .pair .phone { max-width: 280px; }
+
+  /* Feature sections */
+  .feature { padding: 112px 0; }
+  .feature.alt { background: var(--alt); }
+  .feature .wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: center; }
+  .feature.flip .copy { order: 2; }
+  .feature.wide .wrap { grid-template-columns: 0.9fr 1.1fr; }
+  .status { display: inline-flex; align-items: center; gap: 10px; font: 600 15px var(--mono); margin-bottom: 16px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+  .status.needs .dot { color: var(--needs); animation: pulse 2.4s ease-in-out infinite; }
+  .status.working .dot { color: var(--working); }
+  .status.ready .dot { color: var(--ready); }
+  @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--needs) 55%, transparent); } 50% { box-shadow: 0 0 0 7px transparent; } }
+  @media (prefers-reduced-motion: reduce) { .status.needs .dot { animation: none; } html { scroll-behavior: auto; } }
+  h2 { font-size: 44px; line-height: 1.08; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 18px; }
+  .copy p { font-size: 19px; line-height: 1.55; color: var(--muted); margin: 0 0 14px; max-width: 46ch; }
+  .copy p strong { color: var(--text); font-weight: 600; }
+
+  /* How it's built */
+  .built { padding: 112px 0; }
+  .built h2 { text-align: center; }
+  .built .sub { text-align: center; color: var(--muted); font-size: 19px; margin: 0 auto 56px; max-width: 52ch; }
+  .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; list-style: none; padding: 0; margin: 0 0 48px; counter-reset: step; }
+  .flow li { position: relative; background: var(--alt); border-radius: 20px; padding: 24px 22px; }
+  .flow li:not(:last-child)::after { content: ""; position: absolute; right: -12px; top: 50%; width: 8px; height: 8px; border-top: 2px solid var(--muted); border-right: 2px solid var(--muted); transform: translateY(-50%) rotate(45deg); }
+  .flow b { display: block; font-size: 17px; margin-bottom: 6px; }
+  .flow code { font: 13px var(--mono); color: var(--muted); display: block; margin-bottom: 10px; }
+  .flow span { font-size: 15px; color: var(--muted); line-height: 1.45; }
+  .stack { text-align: center; color: var(--muted); font-size: 15px; line-height: 1.8; max-width: 70ch; margin: 0 auto; }
+
+  /* Next */
+  .next { background: var(--alt); padding: 88px 0; text-align: center; }
+  .next h2 { font-size: 36px; }
+  .next p { font-size: 19px; color: var(--muted); max-width: 56ch; margin: 0 auto; }
+
+  footer { padding: 28px 0 48px; font-size: 13px; color: var(--muted); }
+  footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 20px; }
+
+  @media (max-width: 860px) {
+    .hero { padding: 56px 0 72px; }
+    .hero .wrap, .feature .wrap, .feature.wide .wrap { grid-template-columns: 1fr; gap: 48px; }
+    .feature.flip .copy { order: 0; }
+    h1 { font-size: 40px; }
     .lede { font-size: 19px; }
-    .shots { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    h2 { font-size: 32px; }
+    .feature, .built { padding: 72px 0; }
+    .phone { max-width: 280px; border-radius: 46px; }
+    .phone img { border-radius: 37px; }
+    .pair { gap: 14px; }
+    .pair .phone { padding: 7px; border-radius: 34px; }
+    .pair .phone img { border-radius: 28px; }
+    .flow { grid-template-columns: 1fr; }
+    .flow li:not(:last-child)::after { right: 50%; top: auto; bottom: -12px; transform: translateX(50%) rotate(135deg); }
   }
 </style>
 </head>
 <body>
-<main>
-  <h1>agent-hub</h1>
-  <p class="lede">Runs Claude Code agents on an always-on server, with a phone app to watch the live terminal, answer their questions and approve their actions.</p>
-
-  <div class="shots">
-    <img src="img/agents.png" alt="Agents screen listing running sessions, one waiting for approval">
-    <img src="img/terminal.png" alt="Live terminal for one session with tap-to-answer choices">
-    <img src="img/jobs.png" alt="Jobs screen listing scored job postings">
-    <img src="img/job.png" alt="One job posting with its match score, application status and tailored resume">
+<nav aria-label="Site">
+  <div class="wrap">
+    <span class="brand">agent-hub</span>
+    <div class="links"><a href="#how">How it works</a><a href="https://github.com/rutvijjoshi26">GitHub</a></div>
   </div>
-  <p class="caption">The real app, shown with demo data.</p>
+</nav>
 
-  <h2>What it does</h2>
-  <ul>
-    <li>Keeps each Claude Code session running in tmux on the server, so work continues when the laptop is closed.</li>
-    <li>Shows every session on the phone, sorted by which ones need you. Questions and permission prompts appear as buttons.</li>
-    <li>Runs a job-search pipeline: it crawls company job boards, scores each posting, then runs an unattended agent session that tailors a resume and checks it.</li>
-    <li>Fills Greenhouse, Ashby, Lever and Workday application forms with Playwright, as a dry run by default.</li>
-  </ul>
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <h1>Coding agents on a server, steered from your phone.</h1>
+        <p class="lede">agent-hub keeps Claude Code sessions running on an always-on Linux server. Open the phone app to see which ones need you, watch the live terminal and answer with a tap.</p>
+        <div class="actions">
+          <a class="btn primary" href="#how">See how it works</a>
+          <a class="btn secondary" href="https://www.linkedin.com/in/rutvij-joshi5">Contact</a>
+        </div>
+      </div>
+      <div class="phone"><img src="img/agents.png" width="1170" height="1992" alt="Agents screen: one session waiting for approval at the top, three others working or idle below"></div>
+    </div>
+  </section>
 
-  <h2>How it works</h2>
-  <p>A Node and TypeScript server (Fastify) manages the sessions and streams each terminal over WebSockets. Claude Code hooks report when an agent is working, done or waiting. The phone app is an installable web app served by the same server. The server listens only on localhost and is reachable through a private Tailscale network, so nothing is open to the public internet.</p>
-  <p class="muted">Built with TypeScript, Node.js, Fastify, WebSockets, tmux, SQLite, Python, Playwright, Claude Code, Amazon Bedrock and Tailscale.</p>
+  <section class="feature alt" id="how">
+    <div class="wrap">
+      <div class="copy">
+        <div class="status needs"><span class="dot" aria-hidden="true"></span>needs you</div>
+        <h2>Answer from anywhere.</h2>
+        <p>Claude Code hooks tell the hub when an agent is working, finished or waiting. Sessions that need you rise to the top.</p>
+        <p>When an agent asks a question or wants permission to run a command, <strong>its choices appear as buttons</strong>. One tap sends the answer, and the agent keeps going.</p>
+      </div>
+      <div class="phone"><img src="img/terminal.png" width="1170" height="1992" alt="One session's live terminal with Yes and No choices for a test command" loading="lazy"></div>
+    </div>
+  </section>
 
-  <h2>Next</h2>
-  <p>Move the server and the browser-based form filler to Amazon EC2 so more sessions can run in parallel, and route more model calls through Amazon Bedrock under the daily spending cap already in the code.</p>
+  <section class="feature flip">
+    <div class="wrap">
+      <div class="copy">
+        <div class="status working"><span class="dot" aria-hidden="true"></span>working</div>
+        <h2>Work that keeps going.</h2>
+        <p>Every agent runs inside tmux on the server, so <strong>closing the laptop doesn't stop anything</strong>. Reconnect from any device and the session is right where it was.</p>
+        <p>The phone streams the real terminal over a WebSocket, sized to fit the screen. Start, pin, rename or end sessions, and download any file an agent produces.</p>
+      </div>
+      <div class="phone"><img src="img/files.png" width="1170" height="1992" alt="Files screen listing files the agents produced, each with Share, Download and Delete" loading="lazy"></div>
+    </div>
+  </section>
 
-  <footer>
-    Built by Rutvij Joshi · <a href="https://github.com/rutvijjoshi26">GitHub</a> · <a href="https://www.linkedin.com/in/rutvij-joshi5">LinkedIn</a><br>
-    The source code is private. Access is available on request.
-  </footer>
+  <section class="feature alt wide">
+    <div class="wrap">
+      <div class="copy">
+        <div class="status ready"><span class="dot" aria-hidden="true"></span>ready</div>
+        <h2>A job search that runs on its own.</h2>
+        <p>The same server crawls company job boards, filters postings in code and scores each one with a small, fast model.</p>
+        <p>Strong matches get <strong>an unattended agent session</strong> that tailors a resume, has a second model rescore it and builds the PDF. A Playwright form filler then completes Greenhouse, Ashby, Lever and Workday applications, as a dry run by default.</p>
+      </div>
+      <div class="pair">
+        <div class="phone"><img src="img/jobs.png" width="1170" height="1992" alt="Jobs screen with scored postings marked Ready" loading="lazy"></div>
+        <div class="phone"><img src="img/job.png" width="1170" height="1992" alt="One posting with its match score, application status and tailored resume" loading="lazy"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="built">
+    <div class="wrap">
+      <h2>How it's built</h2>
+      <p class="sub">Self-hosted from end to end. The server listens only on localhost, and nothing is open to the public internet.</p>
+      <ol class="flow">
+        <li><b>Phone app</b><code>installable web app</code><span>Served by the hub. No app store and no push service.</span></li>
+        <li><b>Tailscale</b><code>private network</code><span>Carries HTTPS to the hub and adds the user's identity to each request.</span></li>
+        <li><b>Hub</b><code>Fastify on 127.0.0.1</code><span>Sessions API, terminal streaming, hook handlers and a file outbox.</span></li>
+        <li><b>Agents</b><code>tmux + Claude Code</code><span>One session per agent, alive across disconnects and restarts.</span></li>
+      </ol>
+      <p class="stack">TypeScript · Node.js · Fastify · WebSockets · node-pty · tmux · SQLite · Python · Playwright · Claude Code · Amazon Bedrock · Tailscale · systemd</p>
+    </div>
+  </section>
+
+  <section class="next">
+    <div class="wrap">
+      <h2>Next: moving to AWS.</h2>
+      <p>The hub and its browser-based form filler move to Amazon EC2 so more sessions can run side by side, and more model calls go through Amazon Bedrock under the daily spending cap already in the code.</p>
+    </div>
+  </section>
 </main>
+
+<footer>
+  <div class="wrap">
+    <span>Built by Rutvij Joshi. Screenshots show the real app with demo data.</span>
+    <span>Source code is private. Access on request.</span>
+  </div>
+</footer>
 </body>
 </html>
